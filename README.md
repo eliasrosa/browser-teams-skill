@@ -80,6 +80,7 @@ Basta pedir ao agente:
 | `tools/list_unread.py` | Lista não lidos por prioridade (atualiza banco) |
 | `tools/list_changed.py [desde="YYYY-MM-DD HH:MM"]` | Lista chats com msg nova (atualiza banco) |
 | `tools/read_chat.py <id> <saida.txt> [desde] [--rede\|--so-cache]` | Lê mensagens |
+| `tools/config.py [set <chave> <valor>]` | Lê/grava `.data/config.json` |
 | `tools/db.py` | Helper interno: SQLite de contatos (não usar diretamente) |
 
 ## Banco de contatos local
@@ -93,6 +94,30 @@ contacts (id PK, tipo, nome, ultima_msg_ms, unread, mentions, atualizado_em)
 - Persiste entre `git pull` — dados do usuário nunca são sobrescritos
 - Chats arquivados ou removidos do Teams são preservados
 - Alimentado pelo `map_contacts.py` (completo) e pelos outros scripts (incremental)
+
+## Configuração local (`.data/config.json`)
+
+Preferências do usuário — gitignored, não sobrescritas em `git pull`.
+
+```bash
+python3 tools/config.py                            # ver configuração atual
+python3 tools/config.py set notes_dir ~/vault/Teams  # alterar notes_dir
+```
+
+| Campo | Default | Descrição |
+|-------|---------|-----------|
+| `notes_dir` | `<skill>/.data/notes/` | Onde gravar as notas de leitura (MDs por chat) |
+| `message_prefix` | `🤖 ` | Prefixo de toda mensagem enviada pelo agente |
+
+## Envio de mensagens
+
+O agente consegue enviar mensagens no Teams via CDP. Toda mensagem sai com o prefixo configurado:
+
+```
+🤖 [corpo da mensagem]
+```
+
+**Regra:** nunca envia sem confirmação explícita do usuário. A mensagem é enviada no nome do usuário logado no Chrome — não como "Estagiário".
 
 ## Estrutura
 
