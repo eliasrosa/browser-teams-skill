@@ -205,10 +205,32 @@ prioridade: A | B | C
 ---
 ```
 
+## Padrão de envio de mensagem
+
+Toda mensagem enviada pelo agente segue o template:
+
+```
+🤖 Estagiário
+
+[corpo da mensagem]
+```
+
+O `message_prefix` do config já contém `🤖 Estagiário\n\n`. Para enviar, usar
+sempre `keyboard.type` + `Shift+Enter` (nunca `fill` — sobrescreve o texto digitado):
+
+```python
+await p.keyboard.type('🤖 Estagiário')
+await p.keyboard.press('Shift+Enter')
+await p.keyboard.press('Shift+Enter')
+await p.keyboard.type(corpo_da_mensagem)
+await p.keyboard.press('Control+Enter')   # envia
+```
+
+**Nunca** enviar sem o prefixo. **Nunca** enviar sem confirmação explícita do usuário.
+
 ## Regras
 
-- **Nunca abrir o chat** sem autorização explícita (sempre `--so-cache` na rotina)
-- Não ler `Teams:auth` nem localStorage (contêm credenciais)
+- **Nunca abrir o chat** sem autorização explícita (sempre `--so-cache` na rotina)- Não ler `Teams:auth` nem localStorage (contêm credenciais)
 - Nunca enviar mensagem sem confirmação explícita do texto pelo usuário
 - Não incluir nas notas: e-mails, telefones, CPF/CNPJ, dados de clientes, IPs, tokens
 - Usar "o usuário" em notas e resumos compartilháveis (não nome pessoal)
