@@ -23,6 +23,9 @@ import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).parent))
+from session import cli as playwright_cli, parse_playwright_result
+
 BRT = timezone(timedelta(hours=-3))
 
 
@@ -61,23 +64,11 @@ def parse_args():
 
 
 def run_js(js: str) -> str:
-    r = subprocess.run(['playwright-cli', 'run-code', js], capture_output=True, text=True)
-    if r.returncode != 0:
-        print(f'playwright-cli falhou: {r.stderr}', file=sys.stderr)
-        sys.exit(1)
-    return r.stdout
+    return playwright_cli(["run-code", js])
 
 
 def parse_result(raw: str):
-    s = raw.find('### Result')
-    e = raw.find('### Ran Playwright code')
-    if s < 0:
-        return None
-    body = raw[s + len('### Result'):e].strip() if e >= 0 else raw[s + len('### Result'):].strip()
-    try:
-        return json.loads(body)
-    except json.JSONDecodeError:
-        return None
+    return parse_playwright_result(raw)
 
 
 def format_msg(msg: dict) -> str | None:
