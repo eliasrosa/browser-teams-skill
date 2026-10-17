@@ -30,25 +30,30 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 import db as contacts_db
 from config import get_config
+from session import cli as playwright_cli, get_session_name
 
 TEAMS_URL = "teams.cloud.microsoft"
 
 
-def run(cmd: list[str], timeout: int = 10) -> str:
-    r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
-    return r.stdout
+def run(args: list[str], timeout: int = 10) -> str:
+    """Wrapper que injeta -s= automaticamente via session.cli."""
+    try:
+        return playwright_cli(args, timeout=timeout)
+    except RuntimeError:
+        # fallback sem sessão (tab-list para detectar)
+        r = subprocess.run(["playwright-cli"] + args, capture_output=True, text=True, timeout=timeout)
+        return r.stdout
 
 
 def get_tab_list() -> list[dict]:
     """Retorna lista de abas abertas: [{index, title, url, current}]"""
-    out = run(["playwright-cli", "tab-list"])
+    out = run(["tab-list"])
     tabs = []
     for line in out.split("\n"):
         line = line.strip()
         if not line.startswith("- "):
             continue
         current = "(current)" in line
-        # formato: "- N: (current) [Título](URL)" ou "- N: [Título](URL)"
         import re
         m = re.match(r"- (\d+):.*\[([^\]]*)\]\(([^)]+)\)", line)
         if m:

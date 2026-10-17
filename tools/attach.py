@@ -15,6 +15,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).parent))
+import session as _session_helper
+
 DEVTOOLS_FILE = Path.home() / '.config/google-chrome/DevToolsActivePort'
 
 # Localiza o attach.sh do browser-automation-skill (instalado como skill do Kiro Crew)
@@ -101,6 +104,8 @@ def attach_fallback(session: str | None) -> int:
         '(aba selecionada)'
     )
     print(f'ok {current.replace("(current)", "").strip()[:80]}')
+    if session:
+        _session_helper.save_session(session)
     return 0
 
 

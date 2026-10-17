@@ -25,6 +25,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 import db as contacts_db
+from session import cli as playwright_cli, parse_playwright_result
 
 JS = r"""
 async (page) => {
@@ -114,30 +115,18 @@ def sort_key(item: dict) -> tuple:
     return (order.get(categoria(item), 9), -item['lastMs'])
 
 
-def parse_result(raw: str) -> list:
-    s = raw.find('### Result')
-    e = raw.find('### Ran Playwright code')
-    if s < 0:
+def main():
+    try:
+        raw = playwright_cli(["run-code", JS])
+    except RuntimeError as e:
+        print(str(e), file=sys.stderr)
+        sys.exit(1)
+
+    data = parse_playwright_result(raw)
+
+    if data is None:
         print('nenhum resultado na saída do playwright-cli', file=sys.stderr)
         sys.exit(1)
-    body = raw[s + len('### Result'):e].strip() if e >= 0 else raw[s + len('### Result'):].strip()
-    try:
-        return json.loads(body)
-    except json.JSONDecodeError as exc:
-        print(f'erro ao parsear JSON: {exc}\ntrecho: {body[:300]}', file=sys.stderr)
-        sys.exit(1)
-
-
-def main():
-    result = subprocess.run(
-        ['playwright-cli', 'run-code', JS],
-        capture_output=True, text=True
-    )
-    if result.returncode != 0:
-        print(f'playwright-cli falhou: {result.stderr}', file=sys.stderr)
-        sys.exit(1)
-
-    data = parse_result(result.stdout)
 
     if isinstance(data, dict) and 'erro' in data:
         print(data['erro'], file=sys.stderr)
