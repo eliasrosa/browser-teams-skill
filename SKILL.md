@@ -72,7 +72,7 @@ Preferências do usuário — gitignored, não sobrescritas em `git pull`. Geren
 | Campo | Default | Descrição |
 |-------|---------|-----------|
 | `notes_dir` | `<skill>/.data/notes/` | Diretório das notas de leitura (MDs por chat) |
-| `message_prefix` | `🤖 _Estagiário_ · ` | Prefixo adicionado no início de toda mensagem enviada pelo agente |
+| `message_prefix` | `🤖 ` | Prefixo adicionado no início de toda mensagem enviada pelo agente |
 
 ```bash
 # Ver configuração atual
@@ -210,19 +210,14 @@ prioridade: A | B | C
 Toda mensagem enviada pelo agente segue o template:
 
 ```
-🤖 Estagiário
-
-[corpo da mensagem]
+🤖 [corpo da mensagem]
 ```
 
-O `message_prefix` do config já contém `🤖 Estagiário\n\n`. Para enviar, usar
-sempre `keyboard.type` + `Shift+Enter` (nunca `fill` — sobrescreve o texto digitado):
+O `message_prefix` do config já contém `🤖 `. Para enviar, usar
+sempre `keyboard.type` (nunca `fill` — sobrescreve o texto digitado):
 
 ```python
-await p.keyboard.type('🤖 Estagiário')
-await p.keyboard.press('Shift+Enter')
-await p.keyboard.press('Shift+Enter')
-await p.keyboard.type(corpo_da_mensagem)
+await p.keyboard.type('🤖 ' + corpo_da_mensagem)
 await p.keyboard.press('Control+Enter')   # envia
 ```
 

@@ -15,8 +15,8 @@ Campos disponíveis:
                       Default: <skill>/.data/notes/ (dentro da skill, portável).
                       Trocar para vault Obsidian: set_config({'notes_dir': '~/vault/Teams'})
     message_prefix  — prefixo adicionado no início de toda mensagem enviada pelo agente.
-                      Default: '🤖 _Estagiário_ · '
-                      Trocar: set_config({'message_prefix': '🤖 Bot · '})
+                      Default: '🤖 ' (emoji na frente do texto, mesma linha).
+                      Trocar: set_config({'message_prefix': '🤖 Estagiário · '})
 """
 
 import json
@@ -29,7 +29,7 @@ CFG_PATH  = DATA_DIR / 'config.json'
 
 DEFAULTS = {
     'notes_dir': str(SKILL_DIR / '.data' / 'notes'),
-    'message_prefix': '🤖 _Estagiário_ · ',
+    'message_prefix': '🤖 ',
     # futuras chaves:
     # 'vault_dir': '',        # caminho alternativo legado (ex: Obsidian)
     # 'session_name': '',     # PLAYWRIGHT_CLI_SESSION fixo, se necessário
