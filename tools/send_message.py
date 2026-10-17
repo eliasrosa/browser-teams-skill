@@ -95,9 +95,67 @@ def resolve_name(name_or_id: str) -> str:
     return row[0] if row else name_or_id
 
 
+def validate_recipient(name_or_id: str) -> tuple[str, str] | None:
+    """
+    Valida o destinatário contra o contacts.db antes de enviar.
+
+    Retorna (nome, conversation_id) se validado com segurança.
+    Retorna None se ambíguo ou não encontrado (imprime motivo).
+
+    Casos:
+      - conversationId direto (19:...)  → resolve nome, sem ambiguidade
+      - nome com match único no DB      → confirma ID, prossegue
+      - nome com múltiplos matches      → lista e interrompe (ambíguo)
+      - nome sem match no DB            → avisa mas prossegue (não tem ID)
+    """
+    conn = contacts_db.open_db()
+
+    # Caso 1: já é um ID
+    if name_or_id.startswith("19:"):
+        if not conn:
+            return (name_or_id, name_or_id)
+        row = conn.execute(
+            "SELECT nome, id FROM contacts WHERE id = ?", (name_or_id,)
+        ).fetchone()
+        conn.close()
+        if row:
+            print(f"✓ Destinatário validado: {row[0]} (id: {row[1][:40]}...)")
+            return (row[0], row[1])
+        print(f"Aviso: ID não encontrado no contacts.db — pode estar desatualizado.", file=sys.stderr)
+        return (name_or_id, name_or_id)
+
+    # Caso 2: busca por nome (LIKE, case-insensitive)
+    if conn:
+        rows = conn.execute(
+            "SELECT nome, id, tipo FROM contacts WHERE nome LIKE ? COLLATE NOCASE",
+            (f"%{name_or_id}%",)
+        ).fetchall()
+        conn.close()
+
+        if len(rows) == 1:
+            nome, conv_id, tipo = rows[0]
+            print(f"✓ Destinatário validado: {nome} [{tipo}] (id: {conv_id[:40]}...)")
+            return (nome, conv_id)
+
+        if len(rows) > 1:
+            print(f"\n⚠️  Nome '{name_or_id}' é ambíguo — {len(rows)} matches no contacts.db:", file=sys.stderr)
+            for i, (nome, conv_id, tipo) in enumerate(rows, 1):
+                print(f"  {i}. {nome} [{tipo}]  id: {conv_id[:50]}", file=sys.stderr)
+            print("\nUse o conversationId diretamente para evitar envio errado.", file=sys.stderr)
+            print("Exemplo: python3 send_message.py '19:abc...' 'mensagem'", file=sys.stderr)
+            return None
+
+        # Nenhum match no DB
+        print(f"Aviso: '{name_or_id}' não encontrado no contacts.db. Tentando pela busca do Teams.", file=sys.stderr)
+        print("Se o nome for ambíguo no Teams, o chat errado pode ser aberto.", file=sys.stderr)
+
+    return (name_or_id, name_or_id)  # prossegue sem ID confirmado
+
+
 def send(name_or_id: str, message: str) -> bool:
     """
     Envia mensagem para o destinatário no Teams.
+    Valida ambiguidade via contacts.db antes de qualquer ação no browser.
     Retorna True se enviado com sucesso.
     """
     cfg = get_config()
@@ -105,14 +163,17 @@ def send(name_or_id: str, message: str) -> bool:
     send_key = cfg.get("send_key", "Ctrl+Enter")
     full_message = prefix + message
 
-    # 1. Garantir aba do Teams ativa
-    if not select_teams_tab():
-        return False
+    # 1. Validar destinatário antes de tocar no browser
+    result = validate_recipient(name_or_id)
+    if result is None:
+        return False  # ambíguo — interrompe sem abrir nada
+    nome, conv_id = result
 
-    nome = resolve_name(name_or_id)
     print(f"Enviando para: {nome}")
 
-    # 2. Abrir busca global com Ctrl+K
+    # 2. Garantir aba do Teams ativa
+    if not select_teams_tab():
+        return False
     run(["playwright-cli", "press-key", "Control+k"])
     time.sleep(1.2)
 
