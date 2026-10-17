@@ -72,6 +72,7 @@ Preferências do usuário — gitignored, não sobrescritas em `git pull`. Geren
 | Campo | Default | Descrição |
 |-------|---------|-----------|
 | `notes_dir` | `<skill>/.data/notes/` | Diretório das notas de leitura (MDs por chat) |
+| `message_prefix` | `🤖 _Estagiário_ · ` | Prefixo adicionado no início de toda mensagem enviada pelo agente |
 
 ```bash
 # Ver configuração atual
