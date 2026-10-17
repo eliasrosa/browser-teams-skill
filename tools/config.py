@@ -11,9 +11,12 @@ Uso:
     notes_dir = cfg['notes_dir']   # Path resolvido
 
 Campos disponíveis:
-    notes_dir   — onde gravar as notas de leitura (MDs por chat).
-                  Default: <skill>/.data/notes/ (dentro da skill, portável).
-                  Trocar para vault Obsidian: set_config({'notes_dir': '~/vault/Teams'})
+    notes_dir       — onde gravar as notas de leitura (MDs por chat).
+                      Default: <skill>/.data/notes/ (dentro da skill, portável).
+                      Trocar para vault Obsidian: set_config({'notes_dir': '~/vault/Teams'})
+    message_prefix  — prefixo adicionado no início de toda mensagem enviada pelo agente.
+                      Default: '🤖 _Estagiário_ · '
+                      Trocar: set_config({'message_prefix': '🤖 Bot · '})
 """
 
 import json
@@ -26,6 +29,7 @@ CFG_PATH  = DATA_DIR / 'config.json'
 
 DEFAULTS = {
     'notes_dir': str(SKILL_DIR / '.data' / 'notes'),
+    'message_prefix': '🤖 _Estagiário_ · ',
     # futuras chaves:
     # 'vault_dir': '',        # caminho alternativo legado (ex: Obsidian)
     # 'session_name': '',     # PLAYWRIGHT_CLI_SESSION fixo, se necessário
