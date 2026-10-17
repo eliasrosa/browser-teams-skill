@@ -112,9 +112,10 @@ async (page) => {
         const nome = (ct && typeof ct === 'object')
           ? (ct.shortTitle || ct.displayName || '')
           : (ct || (c.threadProperties || {}).topic || '');
-        const tipo_raw = String(c.chatType || c.threadType || 'group').toLowerCase();
-        const tipo = tipo_raw.includes('oneonone') ? '1:1'
-                   : tipo_raw.includes('meeting')  ? 'meeting'
+        // tipo inferido pelo padrão do ID (campos chatType/threadType vêm vazios no IndexedDB)
+        const id = String(c.id || '');
+        const tipo = id.includes('@unq.gbl.spaces') ? '1:1'
+                   : id.includes('meeting_')         ? 'meeting'
                    : 'grupo';
         return {
           id:            String(c.id),
