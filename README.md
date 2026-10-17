@@ -108,6 +108,7 @@ python3 tools/config.py set notes_dir ~/vault/Teams  # alterar notes_dir
 |-------|---------|-----------|
 | `notes_dir` | `<skill>/.data/notes/` | Onde gravar as notas de leitura (MDs por chat) |
 | `message_prefix` | `🤖 ` | Prefixo de toda mensagem enviada pelo agente |
+| `send_key` | `Ctrl+Enter` | Atalho para enviar no Teams web. Mudar para `Enter` se Settings > General > "Send messages on Enter" estiver ativo |
 
 ## Envio de mensagens
 
