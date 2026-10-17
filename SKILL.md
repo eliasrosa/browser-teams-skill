@@ -27,14 +27,42 @@ no vault do usuário. Depende do [`browser-automation-skill`][bas] para a base C
      ~/.kiro/skills/teams-inbox
    ```
 
+5. **Mapeamento inicial** (uma vez — com o Teams aberto no Chrome):
+   ```bash
+   python3 ~/.kiro/skills/teams-inbox/tools/attach.py
+   python3 ~/.kiro/skills/teams-inbox/tools/map_contacts.py
+   # Exemplo de saída:
+   # ✓ /home/<usuario>/.kiro/skills/teams-inbox/.data/contacts.db
+   #   87 novos  |  0 atualizados  |  87 total no banco
+   #   1:1: 28
+   #   grupo: 31
+   #   meeting: 28
+   ```
+   O banco fica em `teams-inbox/.data/contacts.db` (gitignored — não é sobrescrito em `git pull`).
+   Rodar novamente a qualquer momento para atualizar com novos chats.
+
 ## Referência Rápida
 
 | Script | O que faz |
-|--------|-----------|
+|--------|-----------|\n| `tools/map_contacts.py [--dry-run]` | **Onboarding**: varre todos os chats e grava `.data/contacts.db` |
 | `tools/attach.py [-s <sessao>]` | Conecta ao Chrome + seleciona aba do Teams |
 | `tools/list_unread.py` | Lista não lidos por prioridade: mention → 1:1 → grupo |
 | `tools/list_changed.py [desde="YYYY-MM-DD HH:MM"]` | Lista chats com msg nova desde uma data |
 | `tools/read_chat.py <id> <saida.txt> [desde] [--rede\|--so-cache]` | Lê mensagens do chat |
+| `tools/db.py` | Helper interno: leitura e upsert do banco de contatos |
+
+### Banco de contatos (`.data/contacts.db`)
+
+Arquivo SQLite local em `~/.kiro/skills/teams-inbox/.data/contacts.db`.
+Persiste entre atualizações da skill (`.gitignore` exclui `.data/`).
+
+```
+contacts (id PK, tipo, nome, ultima_msg_ms, unread, mentions, atualizado_em)
+```
+
+- `list_unread.py` e `list_changed.py` atualizam o banco automaticamente ao rodar
+- Chats que o Teams não retornar mais (arquivados) são preservados no banco
+- Usuário novo: rodar `map_contacts.py` uma vez para popular
 
 Saída do `list_unread.py` (TSV):
 ```

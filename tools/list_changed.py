@@ -3,18 +3,25 @@
 Lista os chats do Teams com última mensagem depois de uma data, lendo o banco local
 (IndexedDB 'Teams:conversation-manager' -> 'conversations'). Não abre nenhum chat.
 
+Atualiza automaticamente .data/contacts.db quando encontrar chat novo ou renomeado.
+
 Uso: python3 list_changed.py [desde="YYYY-MM-DD HH:MM"]  (default: 4 dias atrás)
 Saída (TSV, mais recente primeiro): ultima_msg_BRT <TAB> conversationId <TAB> titulo
 
-Pré-requisito: playwright-cli conectado com a aba do Teams como "current" (attach.sh).
+Pré-requisito: playwright-cli conectado com a aba do Teams como "current" (attach.py).
 """
 
 import json
 import subprocess
 import sys
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent))
+import db as contacts_db
 
 BRT = timezone(timedelta(hours=-3))
+
 
 def get_desde(arg: str | None) -> tuple[str, int]:
     if not arg:
@@ -32,6 +39,7 @@ def get_desde(arg: str | None) -> tuple[str, int]:
             sys.exit(1)
     return dt.strftime('%Y-%m-%d %H:%M'), int(dt.timestamp() * 1000)
 
+
 JS_TEMPLATE = r"""
 async (page) => {{
   return await page.evaluate(async (desdeMs) => {{
@@ -39,38 +47,50 @@ async (page) => {{
       .find(n => n && n.startsWith('Teams:conversation-manager'));
     if (!name) return {{ erro: 'banco conversation-manager não encontrado' }};
 
-    const db = await new Promise((res, rej) => {{
+    const dbh = await new Promise((res, rej) => {{
       const q = indexedDB.open(name);
       q.onsuccess = () => res(q.result);
       q.onerror   = () => rej(q.error);
     }});
     const all = await new Promise(res => {{
-      const q = db.transaction('conversations', 'readonly')
-                  .objectStore('conversations').getAll();
+      const q = dbh.transaction('conversations', 'readonly')
+                   .objectStore('conversations').getAll();
       q.onsuccess = () => res(q.result || []);
       q.onerror   = () => res([]);
     }});
-    db.close();
+    dbh.close();
 
     return all
       .filter(c => String(c.id || '').startsWith('19:') && Number(c.lastMessageTimeUtc || 0) > desdeMs)
       .map(c => {{
         const ct = c.chatTitle;
-        const title = (ct && typeof ct === 'object')
+        const nome = (ct && typeof ct === 'object')
           ? (ct.shortTitle || '')
           : (ct || (c.threadProperties || {{}}).topic || '');
-        return {{ id: String(c.id), t: Number(c.lastMessageTimeUtc || 0), title: String(title) }};
+        const tipo_raw = String(c.chatType || c.threadType || 'group').toLowerCase();
+        const tipo = tipo_raw.includes('oneonone') ? '1:1'
+                   : tipo_raw.includes('meeting')  ? 'meeting'
+                   : 'grupo';
+        return {{
+          id:            String(c.id),
+          tipo,
+          nome:          String(nome).trim() || String(c.id),
+          ultima_msg_ms: Number(c.lastMessageTimeUtc || 0),
+          unread:        Number(c.unreadCount  || 0),
+          mentions:      Number(c.mentionCount || 0),
+        }};
       }})
-      .sort((a, b) => b.t - a.t);
+      .sort((a, b) => b.ultima_msg_ms - a.ultima_msg_ms);
   }}, {desde_ms});
 }}
 """
+
 
 def parse_result(raw: str) -> list:
     s = raw.find('### Result')
     e = raw.find('### Ran Playwright code')
     if s < 0:
-        print('nenhum resultado encontrado na saída do playwright-cli', file=sys.stderr)
+        print('nenhum resultado na saída do playwright-cli', file=sys.stderr)
         sys.exit(1)
     body = raw[s + len('### Result'):e].strip() if e >= 0 else raw[s + len('### Result'):].strip()
     try:
@@ -78,6 +98,7 @@ def parse_result(raw: str) -> list:
     except json.JSONDecodeError as exc:
         print(f'erro ao parsear JSON: {exc}\ntrecho: {body[:300]}', file=sys.stderr)
         sys.exit(1)
+
 
 def main():
     desde_str, desde_ms = get_desde(sys.argv[1] if len(sys.argv) > 1 else None)
@@ -97,10 +118,26 @@ def main():
         print(data['erro'], file=sys.stderr)
         sys.exit(1)
 
+    # Atualiza banco silenciosamente
+    conn = contacts_db.open_db()
+    if conn:
+        novos = 0
+        for item in data:
+            is_new = contacts_db.upsert(
+                conn, item['id'], item['tipo'], item['nome'],
+                item['ultima_msg_ms'], item['unread'], item['mentions']
+            )
+            if is_new:
+                novos += 1
+        if novos:
+            print(f'# {novos} novo(s) adicionado(s) ao contacts.db', file=sys.stderr)
+        conn.close()
+
     for item in data:
-        ts  = datetime.fromtimestamp(item['t'] / 1000, BRT).strftime('%d/%m/%Y %H:%M')
-        title = ' '.join(str(item['title']).split())
+        ts    = datetime.fromtimestamp(item['ultima_msg_ms'] / 1000, BRT).strftime('%d/%m/%Y %H:%M')
+        title = ' '.join(str(item['nome']).split())
         print(f"{ts}\t{item['id']}\t{title}")
+
 
 if __name__ == '__main__':
     main()
