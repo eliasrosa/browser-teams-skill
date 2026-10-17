@@ -51,9 +51,10 @@ async (page) => {
         const nome = (ct && typeof ct === 'object')
           ? (ct.shortTitle || ct.displayName || '')
           : (ct || (c.threadProperties || {}).topic || c.id || '');
-        const tipo_raw = String(c.chatType || c.threadType || 'group').toLowerCase();
-        const tipo = tipo_raw.includes('oneonone') ? '1:1'
-                   : tipo_raw.includes('meeting')  ? 'meeting'
+        // tipo inferido pelo padrao do ID (chatType/threadType vazios no IndexedDB)
+        const id_str = String(c.id || '');
+        const tipo = id_str.includes('@unq.gbl.spaces') ? '1:1'
+                   : id_str.includes('meeting_')         ? 'meeting'
                    : 'grupo';
         return {
           id:            String(c.id),
