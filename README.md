@@ -80,6 +80,7 @@ Basta pedir ao agente:
 | `tools/list_unread.py` | Lista não lidos por prioridade (atualiza banco) |
 | `tools/list_changed.py [desde="YYYY-MM-DD HH:MM"]` | Lista chats com msg nova (atualiza banco) |
 | `tools/read_chat.py <id> <saida.txt> [desde] [--rede\|--so-cache]` | Lê mensagens |
+| `tools/send_message.py <nome_ou_id> <mensagem>` | Envia mensagem via busca global (Ctrl+K) |
 | `tools/config.py [set <chave> <valor>]` | Lê/grava `.data/config.json` |
 | `tools/db.py` | Helper interno: SQLite de contatos (não usar diretamente) |
 

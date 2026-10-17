@@ -51,6 +51,7 @@ no vault do usuário. Depende do [`browser-automation-skill`][bas] para a base C
 | `tools/read_chat.py <id> <saida.txt> [desde] [--rede\|--so-cache]` | Lê mensagens do chat |
 | `tools/db.py` | Helper interno: leitura e upsert do banco de contatos |
 | `tools/config.py [set <chave> <valor>]` | Lê/grava `.data/config.json` (notes_dir, etc.) |
+| `tools/send_message.py <nome_ou_id> <mensagem>` | Envia mensagem via busca global (Ctrl+K) — fluxo direto, ~4 passos |
 
 ### Banco de contatos (`.data/contacts.db`)
 
@@ -213,15 +214,21 @@ Toda mensagem enviada pelo agente segue o template:
 🤖 [corpo da mensagem]
 ```
 
-O `message_prefix` do config já contém `🤖 `. Para enviar, usar
-sempre `keyboard.type` (nunca `fill` — sobrescreve o texto digitado):
+O `message_prefix` do config já contém `🤖 `. **Usar sempre `send_message.py`** para envio:
 
-```python
-await p.keyboard.type('🤖 ' + corpo_da_mensagem)
-await p.keyboard.press('Control+Enter')   # envia
+```bash
+python3 tools/send_message.py "Nome do contato" "texto da mensagem"
+python3 tools/send_message.py "19:abc...@unq.gbl.spaces" "texto"  # aceita ID também
 ```
 
-**Nunca** enviar sem o prefixo. **Nunca** enviar sem confirmação explícita do usuário.
+**Fluxo interno (4 passos, ~5s total):**
+1. `tab-select` para aba do Teams já aberta
+2. `Ctrl+K` → digitar nome → `Enter` (busca global — funciona para 1:1 e grupos)
+3. `type` com prefixo + mensagem
+4. `press-key send_key` (Ctrl+Enter por padrão, configurável)
+
+**Nunca** enviar sem confirmação explícita do usuário.
+**Nunca** usar `fill()` — apaga o texto digitado.
 
 ## Regras
 
