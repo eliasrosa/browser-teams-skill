@@ -1,15 +1,19 @@
 #!/usr/bin/env python3
 """
 Lista os chats do Teams com mensagens não lidas, classificados por prioridade:
-  1) mention  — mentionCount > 0
-  2) 1:1      — tipo oneOnOne
-  3) grupo    — group, meeting, etc.
+  1) mention  — mentionCount > 0 (campo direto quando disponível)
+  2) 1:1      — conversationId contém @unq.gbl.spaces
+  3) grupo    — demais
 
-Atualiza automaticamente .data/contacts.db quando encontrar chat novo ou renomeado.
+Detecta não lidos por dois métodos (compatível com ambos os schemas do IndexedDB):
+  - Schema novo: lastMessageTimeUtc > consumptionhorizon[1] (readUpToTs)
+  - Schema legado: unreadCount > 0 ou mentionCount > 0
+
+Atualiza automaticamente .data/contacts.db quando encontrar chat novo.
 
 Uso: python3 list_unread.py
 Saída (TSV, mais recente primeiro por categoria):
-  categoria <TAB> unread <TAB> mentions <TAB> conversationId <TAB> titulo
+  categoria <TAB> unread_est <TAB> mentions <TAB> conversationId <TAB> titulo
 
 Pré-requisito: playwright-cli conectado com a aba do Teams como "current" (attach.py).
 """
@@ -19,7 +23,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-# helper local
 sys.path.insert(0, str(Path(__file__).parent))
 import db as contacts_db
 
@@ -43,28 +46,56 @@ async (page) => {
     });
     dbh.close();
 
-    return all
-      .filter(c => String(c.id || '').startsWith('19:'))
-      .filter(c => (c.unreadCount || 0) > 0 || (c.mentionCount || 0) > 0)
-      .map(c => {
-        const ct = c.chatTitle;
-        const nome = (ct && typeof ct === 'object')
-          ? (ct.shortTitle || ct.displayName || '')
-          : (ct || (c.threadProperties || {}).topic || c.id || '');
-        // tipo inferido pelo padrao do ID (chatType/threadType vazios no IndexedDB)
-        const id_str = String(c.id || '');
-        const tipo = id_str.includes('@unq.gbl.spaces') ? '1:1'
-                   : id_str.includes('meeting_')         ? 'meeting'
-                   : 'grupo';
-        return {
-          id:            String(c.id),
-          tipo,
-          nome:          String(nome).trim() || String(c.id),
-          ultima_msg_ms: Number(c.lastMessageTimeUtc || 0),
-          unread:        Number(c.unreadCount  || 0),
-          mentions:      Number(c.mentionCount || 0),
-        };
+    const results = [];
+
+    for (const c of all) {
+      const id = String(c.id || '');
+      if (!id.startsWith('19:')) continue;
+
+      let unread   = 0;
+      let mentions = Number(c.mentionCount || 0);
+
+      // Schema legado: campos diretos
+      if ((c.unreadCount || 0) > 0 || mentions > 0) {
+        unread   = Number(c.unreadCount || 0);
+      }
+      // Schema novo: consumptionhorizon = "lastMsgTs;readUpToTs;seqId"
+      else {
+        const ch = String((c.properties || {}).consumptionhorizon || '');
+        if (ch) {
+          const parts    = ch.split(';');
+          const readUpTo = Number(parts[1] || 0);
+          const lastMs   = Number(c.lastMessageTimeUtc || 0);
+          if (lastMs > readUpTo && lastMs > 0) {
+            unread = 1; // não temos count exato, mas há não lidos
+          }
+        }
+      }
+
+      if (unread === 0 && mentions === 0) continue;
+
+      // nome: shortTitle evita e-mails dos membros
+      const ct   = c.chatTitle;
+      const nome = (ct && typeof ct === 'object')
+        ? (ct.shortTitle || ct.displayName || '')
+        : (ct || (c.threadProperties || {}).topic || '');
+
+      // tipo pelo padrão do ID
+      const tipo = id.includes('@unq.gbl.spaces') ? '1:1'
+                 : id.includes('meeting_')         ? 'meeting'
+                 : 'grupo';
+
+      results.push({
+        id,
+        tipo,
+        nome:    String(nome).trim() || id,
+        unread,
+        mentions,
+        lastMs:  Number(c.lastMessageTimeUtc || 0),
       });
+    }
+
+    return results;
   });
 }
 """
@@ -80,7 +111,7 @@ def categoria(item: dict) -> str:
 
 def sort_key(item: dict) -> tuple:
     order = {'mention': 0, '1:1': 1, 'grupo': 2}
-    return (order.get(categoria(item), 9), -item['ultima_msg_ms'])
+    return (order.get(categoria(item), 9), -item['lastMs'])
 
 
 def parse_result(raw: str) -> list:
@@ -119,7 +150,7 @@ def main():
         for item in data:
             is_new = contacts_db.upsert(
                 conn, item['id'], item['tipo'], item['nome'],
-                item['ultima_msg_ms'], item['unread'], item['mentions']
+                item['lastMs'], item['unread'], item['mentions']
             )
             if is_new:
                 novos += 1
