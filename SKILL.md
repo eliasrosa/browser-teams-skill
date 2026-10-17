@@ -50,6 +50,7 @@ no vault do usuário. Depende do [`browser-automation-skill`][bas] para a base C
 | `tools/list_changed.py [desde="YYYY-MM-DD HH:MM"]` | Lista chats com msg nova desde uma data |
 | `tools/read_chat.py <id> <saida.txt> [desde] [--rede\|--so-cache]` | Lê mensagens do chat |
 | `tools/db.py` | Helper interno: leitura e upsert do banco de contatos |
+| `tools/config.py [set <chave> <valor>]` | Lê/grava `.data/config.json` (notes_dir, etc.) |
 
 ### Banco de contatos (`.data/contacts.db`)
 
@@ -63,6 +64,33 @@ contacts (id PK, tipo, nome, ultima_msg_ms, unread, mentions, atualizado_em)
 - `list_unread.py` e `list_changed.py` atualizam o banco automaticamente ao rodar
 - Chats que o Teams não retornar mais (arquivados) são preservados no banco
 - Usuário novo: rodar `map_contacts.py` uma vez para popular
+
+### Configuração local (`.data/config.json`)
+
+Preferências do usuário — gitignored, não sobrescritas em `git pull`. Gerenciadas por `tools/config.py`.
+
+| Campo | Default | Descrição |
+|-------|---------|-----------|
+| `notes_dir` | `<skill>/.data/notes/` | Diretório das notas de leitura (MDs por chat) |
+
+```bash
+# Ver configuração atual
+python3 tools/config.py
+
+# Alterar (ex: apontar para vault Obsidian)
+python3 tools/config.py set notes_dir ~/dev/obsidian-vault/Cogna/Teams
+```
+
+Estrutura criada automaticamente dentro de `notes_dir`:
+```
+notes_dir/
+├── 1-1/       ← conversas oneOnOne
+├── grupos/    ← canais e grupos
+└── reunioes/  ← chats de meetings
+```
+
+Usuário novo: default é `<skill>/.data/notes/` (portável, sem dependência externa).
+Com vault Obsidian: configurar `notes_dir` apontando para a pasta do Teams.
 
 Saída do `list_unread.py` (TSV):
 ```
