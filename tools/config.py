@@ -17,6 +17,12 @@ Campos disponíveis:
     message_prefix  — prefixo adicionado no início de toda mensagem enviada pelo agente.
                       Default: '🤖 ' (emoji na frente do texto, mesma linha).
                       Trocar: set_config({'message_prefix': '🤖 Estagiário · '})
+    send_key        — atalho de teclado para ENVIAR a mensagem no Teams web.
+                      Depende da configuração pessoal do Teams (Settings > General):
+                        'Ctrl+Enter'  — padrão Teams web (Enter quebra linha)
+                        'Enter'       — quando 'Send on Enter' está ativo
+                      Default: 'Ctrl+Enter' (seguro para qualquer configuração).
+                      Trocar: set_config({'send_key': 'Enter'})
 """
 
 import json
@@ -30,6 +36,7 @@ CFG_PATH  = DATA_DIR / 'config.json'
 DEFAULTS = {
     'notes_dir': str(SKILL_DIR / '.data' / 'notes'),
     'message_prefix': '🤖 ',
+    'send_key': 'Ctrl+Enter',  # Ctrl+Enter = padrão web; 'Enter' se Settings>General>Send on Enter
     # futuras chaves:
     # 'vault_dir': '',        # caminho alternativo legado (ex: Obsidian)
     # 'session_name': '',     # PLAYWRIGHT_CLI_SESSION fixo, se necessário
