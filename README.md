@@ -17,6 +17,46 @@ para a conexão base com o Chrome via CDP.
 - **Triagem interativa** via `$teams-inbox`: resumo por categoria, escolha de frente, atualização de notas
 - **Rotina diária silenciosa**: atualiza só o que é novo, notifica com resumo
 
+## Requisitos
+
+| Item | Tipo | Como instalar / configurar |
+|------|------|---------------------------|
+| `playwright-cli` | Ferramenta | `npm install -g @playwright/cli@latest` (Node.js 20+) |
+| Python 3.10+ | Runtime | pré-instalado na maioria dos sistemas |
+| Chrome com remote debugging | Browser | `chrome://inspect/#remote-debugging` → habilitar |
+| Extensão Playwright | Extensão Chrome | [Chrome Web Store](https://chromewebstore.google.com/detail/playwright-extension/mmlmfjhmonkocbjadbfplnigmagldckm) |
+| [`browser-automation-skill`](https://github.com/eliasrosa/browser-automation-skill) | Skill base | ver Instalação abaixo |
+
+Verificar tudo de uma vez:
+
+```bash
+python3 ~/.kiro/skills/teams-inbox/tools/check.py
+```
+
+Saída esperada quando OK:
+
+```
+Verificando requisitos da browser-teams-skill...
+
+Ferramentas:
+  ✓ playwright-cli instalado
+  ✓ Python 3.10+
+
+Dependências:
+  ✓ browser-automation-skill instalada
+
+Estado local (.data/):
+  ✓ .data/config.json existe
+  ✓ .data/contacts.db populado
+  ✓ .data/session_name existe
+
+Conectividade:
+  ✓ Chrome com remote debugging ativo (DevToolsActivePort)
+  ✓ Sessão playwright 'kc-...' tem aba do Teams
+
+✓ Todos os requisitos satisfeitos. A skill está pronta para uso.
+```
+
 ## Instalação
 
 ```bash
@@ -75,6 +115,7 @@ Basta pedir ao agente:
 
 | Script | Uso |
 |--------|-----|
+| `tools/check.py` | **Pré-check**: valida todos os requisitos (exit 0 = OK, exit 1 = falhou) |
 | `tools/map_contacts.py [--dry-run]` | **Onboarding**: mapeia todos os chats para `.data/contacts.db` |
 | `tools/attach.py [-s <sessao>]` | Conecta ao Chrome e seleciona a aba do Teams; persiste a sessão em `.data/session_name` |
 | `tools/list_unread.py` | Lista não lidos por prioridade (atualiza banco) |
@@ -133,6 +174,7 @@ browser-teams-skill/
 ├── runbooks/
 │   └── teams-mapa.md    # Estrutura da UI do Teams, seletores, IndexedDB
 └── tools/
+    ├── check.py         # Pré-check: valida todos os requisitos (exit 0/1)
     ├── attach.py        # Conectar ao Chrome; persiste sessão em .data/session_name
     ├── session.py       # Helper: detecta e injeta -s=<sessao> automaticamente
     ├── db.py            # Helper SQLite compartilhado
