@@ -76,12 +76,13 @@ Basta pedir ao agente:
 | Script | Uso |
 |--------|-----|
 | `tools/map_contacts.py [--dry-run]` | **Onboarding**: mapeia todos os chats para `.data/contacts.db` |
-| `tools/attach.py [-s <sessao>]` | Conecta ao Chrome e seleciona a aba do Teams |
+| `tools/attach.py [-s <sessao>]` | Conecta ao Chrome e seleciona a aba do Teams; persiste a sessão em `.data/session_name` |
 | `tools/list_unread.py` | Lista não lidos por prioridade (atualiza banco) |
 | `tools/list_changed.py [desde="YYYY-MM-DD HH:MM"]` | Lista chats com msg nova (atualiza banco) |
 | `tools/read_chat.py <id> <saida.txt> [desde] [--rede\|--so-cache]` | Lê mensagens |
-| `tools/send_message.py <nome_ou_id> <mensagem>` | Envia mensagem via busca global (Ctrl+K) |
+| `tools/send_message.py <nome_ou_id> <mensagem>` | Envia mensagem via busca global (Ctrl+K), com validação de ambiguidade |
 | `tools/config.py [set <chave> <valor>]` | Lê/grava `.data/config.json` |
+| `tools/session.py` | Helper interno: detecta e injeta `-s=<sessao>` em todos os subprocessos playwright-cli. Diagnóstico: `python3 tools/session.py` |
 | `tools/db.py` | Helper interno: SQLite de contatos (não usar diretamente) |
 
 ## Banco de contatos local
@@ -132,12 +133,15 @@ browser-teams-skill/
 ├── runbooks/
 │   └── teams-mapa.md    # Estrutura da UI do Teams, seletores, IndexedDB
 └── tools/
-    ├── map_contacts.py  # Onboarding: mapeia chats → .data/contacts.db
-    ├── attach.py        # Conectar ao Chrome (delega ao browser-automation-skill)
+    ├── attach.py        # Conectar ao Chrome; persiste sessão em .data/session_name
+    ├── session.py       # Helper: detecta e injeta -s=<sessao> automaticamente
     ├── db.py            # Helper SQLite compartilhado
+    ├── config.py        # Lê/grava .data/config.json
+    ├── map_contacts.py  # Onboarding: mapeia chats → .data/contacts.db
     ├── list_unread.py   # Lista não lidos classificados
     ├── list_changed.py  # Lista chats com msg nova
-    └── read_chat.py     # Lê mensagens pelo cache IndexedDB
+    ├── read_chat.py     # Lê mensagens pelo cache IndexedDB
+    └── send_message.py  # Envia mensagem via busca Ctrl+K com validação de ambiguidade
 ```
 
 ## Regras de segurança
