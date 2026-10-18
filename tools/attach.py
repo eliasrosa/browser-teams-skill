@@ -20,9 +20,12 @@ import session as _session_helper
 
 DEVTOOLS_FILE = Path.home() / '.config/google-chrome/DevToolsActivePort'
 
+# Diretório base do Kiro Crew — respeita KIROCREW_HOME quando definida
+_CREW_HOME = os.environ.get("KIROCREW_HOME") or str(Path.home() / ".kiro/crew")
+
 # Localiza o attach.sh do browser-automation-skill (instalado como skill do Kiro Crew)
 ATTACH_SH_CANDIDATES = [
-    Path.home() / '.kiro/crew/skills/browser-automation/tools/attach.sh',
+    Path(_CREW_HOME) / 'skills/browser-automation/tools/attach.sh',
     Path.home() / '.kiro/skills/browser-automation/tools/attach.sh',
 ]
 

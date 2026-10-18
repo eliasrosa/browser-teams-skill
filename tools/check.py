@@ -5,6 +5,7 @@ Pré-check: valida que todos os requisitos da browser-teams-skill estão satisfe
 Uso: python3 tools/check.py
 Saída: lista de ✓/✗ por requisito; exit 1 se algum falhar.
 """
+import os
 import shutil
 import subprocess
 import sys
@@ -46,8 +47,9 @@ check(
 # --- browser-automation-skill (dependência base) ---
 print("\nDependências:")
 
+_crew_home = os.environ.get("KIROCREW_HOME") or str(Path.home() / ".kiro/crew")
 ba_candidates = [
-    Path.home() / ".kiro/crew/skills/browser-automation/tools/attach.sh",
+    Path(_crew_home) / "skills/browser-automation/tools/attach.sh",
     Path.home() / ".kiro/skills/browser-automation/tools/attach.sh",
 ]
 has_ba = any(p.exists() for p in ba_candidates)
