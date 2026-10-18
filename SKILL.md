@@ -2,7 +2,6 @@
 name: teams-inbox
 description: Use when the user says '$teams-inbox', 'ver não lidos do Teams', 'o que tenho não lido no Teams', 'abrir inbox do Teams', 'ler chats do Teams', 'atualizar notas do Teams' or asks to read, triage or update unread Teams messages. Requires browser-automation-skill installed (CDP base).
 inclusion: auto
-version: 2026-10-17
 ---
 
 # browser-teams-skill — Teams via browser CDP
