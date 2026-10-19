@@ -49,6 +49,7 @@ no vault do usuário. Depende do [`browser-automation-skill`][bas] para a base C
 | `tools/list_changed.py [desde="YYYY-MM-DD HH:MM"]` | Lista chats com msg nova desde uma data |
 | `tools/read_chat.py <id> <saida.txt> [desde] [--rede\|--so-cache]` | Lê mensagens do chat |
 | `tools/read_recap.py <id> <saida.txt>` | Lê o painel de Recapitulação (anotações de IA + tarefas) de chat de reunião |
+| `tools/read_transcript.py <id> <saida.txt>` | Lê a transcrição completa de uma reunião (scroll iterativo no iframe do SharePoint) |
 | `tools/db.py` | Helper interno: leitura e upsert do banco de contatos |
 | `tools/config.py [set <chave> <valor>]` | Lê/grava `.data/config.json` (notes_dir, etc.) |
 | `tools/send_message.py <nome_ou_id> <mensagem>` | Envia mensagem via busca global (Ctrl+K) — fluxo direto, ~4 passos |
@@ -266,8 +267,51 @@ python3 tools/read_chat.py "$CONV_ID" "$SCRATCH/chat.txt" --so-cache
 # 2. Ler recapitulação (anotações de IA + tarefas)
 python3 tools/read_recap.py "$CONV_ID" "$SCRATCH/recap.txt"
 
-# 3. Combinar e atualizar nota do vault
+# 3. Ler transcrição completa (falas individuais)
+python3 tools/read_transcript.py "$CONV_ID" "$SCRATCH/transcript.txt"
+
+# 4. Combinar e atualizar nota do vault
 ```
+
+## Leitura de Transcrição de Reunião (`read_transcript.py`)
+
+Lê a transcrição completa de uma reunião — todas as falas individuais com autor e timestamp.
+
+```bash
+python3 tools/read_transcript.py <conversationId> "$KIROCREW_SCRATCH/transcript.txt"
+```
+
+**Quando usar:** quando você precisa das falas individuais (quem disse o quê e quando), em vez das anotações consolidadas do `read_recap.py`. Mais detalhado e mais longo — uma reunião de 1h gera ~400-600 linhas.
+
+**Como funciona:**
+- A transcrição fica num **iframe do SharePoint/OneDrive** dentro do painel Recapitular → Transcrição
+- O Teams virtualiza o conteúdo (só renderiza o que está visível), então o script faz **scroll iterativo** no iframe até encontrar o marcador de fim ("parou a transcrição")
+- O texto bruto é parseado em entradas estruturadas: `{autor, timestamp (H:MM:SS), texto}`
+
+**Formato de saída:**
+```
+# fonte: transcript
+
+Andre Henrique Dos Santos Moura (0:00:03)
+Depois está.
+
+Pedro Rago Da Silva (0:00:09)
+Bom, a gente tem uma causa raiz única que desencadeou ser uma série de problemas...
+
+[Elias Da Rosa encerrou a transcrição]
+```
+
+**Primeira linha do arquivo (fonte):**
+- `# fonte: transcript` — OK, transcrição parseada em entradas estruturadas
+- `# fonte: transcript-raw` — OK, mas parse estruturado falhou (texto bruto limpo)
+- `# fonte: sem-transcript` — aba Transcrição não encontrada (chat sem reunião ou sem transcrição habilitada)
+- `# fonte: transcript-erro` — erro ao acessar/rolar o iframe
+
+**Limitações:**
+- Só funciona em chats de reunião com transcrição habilitada
+- A reunião precisa ter sido gravada/transcrita no Teams para o botão aparecer
+- O scroll iterativo leva ~30-60s para reuniões longas (máximo 20 scrolls por padrão)
+- Abre o chat se não estiver aberto (marca como lido)
 
 ## Regras
 
