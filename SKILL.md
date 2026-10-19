@@ -48,6 +48,7 @@ no vault do usuário. Depende do [`browser-automation-skill`][bas] para a base C
 | `tools/list_unread.py` | Lista não lidos por prioridade: mention → 1:1 → grupo |
 | `tools/list_changed.py [desde="YYYY-MM-DD HH:MM"]` | Lista chats com msg nova desde uma data |
 | `tools/read_chat.py <id> <saida.txt> [desde] [--rede\|--so-cache]` | Lê mensagens do chat |
+| `tools/read_recap.py <id> <saida.txt>` | Lê o painel de Recapitulação (anotações de IA + tarefas) de chat de reunião |
 | `tools/db.py` | Helper interno: leitura e upsert do banco de contatos |
 | `tools/config.py [set <chave> <valor>]` | Lê/grava `.data/config.json` (notes_dir, etc.) |
 | `tools/send_message.py <nome_ou_id> <mensagem>` | Envia mensagem via busca global (Ctrl+K) — fluxo direto, ~4 passos |
@@ -228,6 +229,45 @@ python3 tools/send_message.py "19:abc...@unq.gbl.spaces" "texto"  # aceita ID ta
 
 **Nunca** enviar sem confirmação explícita do usuário.
 **Nunca** usar `fill()` — apaga o texto digitado.
+
+## Leitura de Recapitulação de Reunião (`read_recap.py`)
+
+O Teams gera um painel de **Recapitulação** em chats de reunião que tiveram transcrição ativa. Ele contém anotações de IA e tarefas de acompanhamento geradas automaticamente.
+
+```bash
+python3 tools/read_recap.py <conversationId> "$KIROCREW_SCRATCH/recap.txt"
+```
+
+**Quando usar:** após `read_chat.py` para complementar com o conteúdo do painel de IA — especialmente útil quando a reunião tinha muitos participantes e decisões.
+
+**Fluxo interno (automático):**
+1. Verifica se o chat já está aberto numa aba — se não, abre via deep link
+2. Clica na aba "Recapitular" do chat
+3. Aguarda o painel carregar (até 8s)
+4. Extrai anotações de IA e tarefas via `document.body.innerText`
+5. Grava em dois blocos: `## Anotações da reunião (IA)` e `## Tarefas de acompanhamento`
+
+**Primeira linha do arquivo de saída (fonte):**
+- `# fonte: recap` — OK, conteúdo extraído
+- `# fonte: sem-recap` — aba Recapitular não encontrada (chat não é de reunião ou sem transcrição)
+- `# fonte: recap-erro` — erro ao acessar/extrair
+
+**Limitações:**
+- Só funciona em chats de reunião (tipo `meeting`) — chats 1:1 e grupos normais não têm recapitulação
+- Requer que a reunião tenha tido transcrição ativa no Teams
+- O painel pode demorar alguns segundos para carregar após clicar na aba
+- Abre o chat (marca como lido) se ele não estiver aberto — diferente do `read_chat.py --so-cache`
+
+**Integração sugerida no fluxo de leitura de reuniões:**
+```bash
+# 1. Ler mensagens do chat
+python3 tools/read_chat.py "$CONV_ID" "$SCRATCH/chat.txt" --so-cache
+
+# 2. Ler recapitulação (anotações de IA + tarefas)
+python3 tools/read_recap.py "$CONV_ID" "$SCRATCH/recap.txt"
+
+# 3. Combinar e atualizar nota do vault
+```
 
 ## Regras
 
